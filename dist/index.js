@@ -1213,13 +1213,13 @@ const Content = /*#__PURE__*/ React__namespace.default.forwardRef(function({ onO
             ...style
         } : style,
         onOpenAutoFocus: (e)=>{
-            if (onOpenAutoFocus) {
-                onOpenAutoFocus(e);
-            } else {
-                var _drawerRef_current;
-                e.preventDefault();
-                (_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.focus();
-            }
+            // if (onOpenAutoFocus) {
+            //     onOpenAutoFocus(e);
+            // } else {
+            //     var _drawerRef_current;
+            //     e.preventDefault();
+            //     (_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.focus();
+            // }
         },
         onPointerDown: (event)=>{
             if (handleOnly) return;
