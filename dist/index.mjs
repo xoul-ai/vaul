@@ -1192,7 +1192,7 @@ const Content = /*#__PURE__*/ React__default.forwardRef(function({ onOpenAutoFoc
                 onOpenAutoFocus(e);
             } else {
                 var _drawerRef_current;
-                e.preventDefault();
+                // e.preventDefault();
                 (_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.focus();
             }
         },

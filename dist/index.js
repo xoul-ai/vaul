@@ -1244,16 +1244,16 @@ const Content = /*#__PURE__*/ React__namespace.default.forwardRef(function({ onO
             closeDrawer();
         },
         onFocusOutside: (e)=>{
-            if (!modal) {
-                e.preventDefault();
-                return;
-            }
+            // if (!modal) {
+            //     e.preventDefault();
+            //     return;
+            // }
         },
         onEscapeKeyDown: (e)=>{
-            if (!modal) {
-                e.preventDefault();
-                return;
-            }
+            // if (!modal) {
+            //     e.preventDefault();
+            //     return;
+            // }
         },
         onPointerMove: (event)=>{
             if (handleOnly) return;
