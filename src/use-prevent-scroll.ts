@@ -91,29 +91,30 @@ let restore: () => void;
  * shift due to the scrollbars disappearing.
  */
 export function usePreventScroll(options: PreventScrollOptions = {}) {
-  let { isDisabled } = options;
+  // let { isDisabled } = options;
 
-  useIsomorphicLayoutEffect(() => {
-    if (isDisabled) {
-      return;
-    }
+  // useIsomorphicLayoutEffect(() => {
+  //   if (isDisabled) {
+  //     return;
+  //   }
 
-    preventScrollCount++;
-    if (preventScrollCount === 1) {
-      if (isIOS()) {
-        restore = preventScrollMobileSafari();
-      } else {
-        restore = preventScrollStandard();
-      }
-    }
+  //   preventScrollCount++;
+  //   if (preventScrollCount === 1) {
+  //     if (isIOS()) {
+  //       restore = preventScrollMobileSafari();
+  //     } else {
+  //       restore = preventScrollStandard();
+  //     }
+  //   }
 
-    return () => {
-      preventScrollCount--;
-      if (preventScrollCount === 0) {
-        restore();
-      }
-    };
-  }, [isDisabled]);
+  //   return () => {
+  //     preventScrollCount--;
+  //     if (preventScrollCount === 0) {
+  //       restore();
+  //     }
+  //   };
+  // }, [isDisabled]);
+  return () => {};
 }
 
 // For most browsers, all we need to do is set `overflow: hidden` on the root element, and

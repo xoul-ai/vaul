@@ -977,12 +977,12 @@ const Content = React.forwardRef<HTMLDivElement, ContentProps>(function (
           : style
       }
       onOpenAutoFocus={(e) => {
-        if (onOpenAutoFocus) {
-          onOpenAutoFocus(e);
-        } else {
-          e.preventDefault();
-          drawerRef.current?.focus();
-        }
+        // if (onOpenAutoFocus) {
+        //   onOpenAutoFocus(e);
+        // } else {
+        //   e.preventDefault();
+        //   drawerRef.current?.focus();
+        // }
       }}
       onPointerDown={(event) => {
         if (handleOnly) return;
