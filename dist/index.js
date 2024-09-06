@@ -1229,14 +1229,14 @@ const Content = /*#__PURE__*/ React__namespace.default.forwardRef(function({ onO
         },
         onPointerDownOutside: (e)=>{
             onPointerDownOutside == null ? void 0 : onPointerDownOutside(e);
-            if (!modal || e.defaultPrevented) {
-                e.preventDefault();
-                return;
-            }
+            // if (!modal || e.defaultPrevented) {
+            //     e.preventDefault();
+            //     return;
+            // }
             if (keyboardIsOpen.current) {
                 keyboardIsOpen.current = false;
             }
-            e.preventDefault();
+            // e.preventDefault();
             onOpenChange == null ? void 0 : onOpenChange(false);
             if (!dismissible || openProp !== undefined) {
                 return;
