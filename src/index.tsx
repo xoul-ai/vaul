@@ -129,9 +129,9 @@ function Root({
     direction,
   });
 
-  usePreventScroll({
-    isDisabled: !isOpen || isDragging || !modal || justReleased || !hasBeenOpened || disablePreventScroll,
-  });
+  // usePreventScroll({
+  //   isDisabled: !isOpen || isDragging || !modal || justReleased || !hasBeenOpened || disablePreventScroll,
+  // });
 
   const { restorePositionSetting } = usePositionFixed({
     isOpen,
