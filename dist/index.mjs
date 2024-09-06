@@ -1188,13 +1188,13 @@ const Content = /*#__PURE__*/ React__default.forwardRef(function({ onOpenAutoFoc
             ...style
         } : style,
         onOpenAutoFocus: (e)=>{
-            if (onOpenAutoFocus) {
-                onOpenAutoFocus(e);
-            } else {
-                var _drawerRef_current;
-                // e.preventDefault();
-                (_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.focus();
-            }
+            // if (onOpenAutoFocus) {
+            //     onOpenAutoFocus(e);
+            // } else {
+            //     var _drawerRef_current;
+            //     // e.preventDefault();
+            //     (_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.focus();
+            // }
         },
         onPointerDown: (event)=>{
             if (handleOnly) return;
@@ -1222,16 +1222,16 @@ const Content = /*#__PURE__*/ React__default.forwardRef(function({ onOpenAutoFoc
             closeDrawer();
         },
         onFocusOutside: (e)=>{
-            if (!modal) {
-                e.preventDefault();
-                return;
-            }
+            // if (!modal) {
+            //     e.preventDefault();
+            //     return;
+            // }
         },
         onEscapeKeyDown: (e)=>{
-            if (!modal) {
-                e.preventDefault();
-                return;
-            }
+            // if (!modal) {
+            //     e.preventDefault();
+            //     return;
+            // }
         },
         onPointerMove: (event)=>{
             if (handleOnly) return;

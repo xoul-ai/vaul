@@ -1008,16 +1008,16 @@ const Content = React.forwardRef<HTMLDivElement, ContentProps>(function (
         closeDrawer();
       }}
       onFocusOutside={(e) => {
-        if (!modal) {
-          e.preventDefault();
-          return;
-        }
+        // if (!modal) {
+        //   e.preventDefault();
+        //   return;
+        // }
       }}
       onEscapeKeyDown={(e) => {
-        if (!modal) {
-          e.preventDefault();
-          return;
-        }
+        // if (!modal) {
+        //   e.preventDefault();
+        //   return;
+        // }
       }}
       onPointerMove={(event) => {
         if (handleOnly) return;
