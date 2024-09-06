@@ -977,6 +977,7 @@ const Content = React.forwardRef<HTMLDivElement, ContentProps>(function (
           : style
       }
       onOpenAutoFocus={(e) => {
+        e.preventDefault();
         // if (onOpenAutoFocus) {
         //   onOpenAutoFocus(e);
         // } else {

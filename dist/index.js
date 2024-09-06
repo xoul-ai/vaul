@@ -1213,6 +1213,7 @@ const Content = /*#__PURE__*/ React__namespace.default.forwardRef(function({ onO
             ...style
         } : style,
         onOpenAutoFocus: (e)=>{
+          e.preventDefault();
             // if (onOpenAutoFocus) {
             //     onOpenAutoFocus(e);
             // } else {

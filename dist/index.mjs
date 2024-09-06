@@ -1191,6 +1191,7 @@ const Content = /*#__PURE__*/ React__default.forwardRef(function({ onOpenAutoFoc
             ...style
         } : style,
         onOpenAutoFocus: (e)=>{
+            e.preventDefault();
             // if (onOpenAutoFocus) {
             //     onOpenAutoFocus(e);
             // } else {
