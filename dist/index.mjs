@@ -58,15 +58,6 @@ __insertCSS("[vaul-drawer]{touch-action:none;will-change:transform;transition:tr
 
 // This code comes from https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/overlays/src/usePreventScroll.ts
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-function chain(...callbacks) {
-    return (...args)=>{
-        for (let callback of callbacks){
-            if (typeof callback === 'function') {
-                callback(...args);
-            }
-        }
-    };
-}
 function isMac() {
     return testPlatform(/^Mac/);
 }
@@ -82,240 +73,6 @@ function isIOS() {
 }
 function testPlatform(re) {
     return typeof window !== 'undefined' && window.navigator != null ? re.test(window.navigator.platform) : undefined;
-}
-// @ts-ignore
-const visualViewport = typeof document !== 'undefined' && window.visualViewport;
-function isScrollable(node) {
-    let style = window.getComputedStyle(node);
-    return /(auto|scroll)/.test(style.overflow + style.overflowX + style.overflowY);
-}
-function getScrollParent(node) {
-    if (isScrollable(node)) {
-        node = node.parentElement;
-    }
-    while(node && !isScrollable(node)){
-        node = node.parentElement;
-    }
-    return node || document.scrollingElement || document.documentElement;
-}
-// HTML input types that do not cause the software keyboard to appear.
-const nonTextInputTypes = new Set([
-    'checkbox',
-    'radio',
-    'range',
-    'color',
-    'file',
-    'image',
-    'button',
-    'submit',
-    'reset'
-]);
-// The number of active usePreventScroll calls. Used to determine whether to revert back to the original page style/scroll position
-let preventScrollCount = 0;
-let restore;
-/**
- * Prevents scrolling on the document body on mount, and
- * restores it on unmount. Also ensures that content does not
- * shift due to the scrollbars disappearing.
- */ function usePreventScroll(options = {}) {
-    let { isDisabled } = options;
-    useIsomorphicLayoutEffect(()=>{
-        if (isDisabled) {
-            return;
-        }
-        preventScrollCount++;
-        if (preventScrollCount === 1) {
-            if (isIOS()) {
-                restore = preventScrollMobileSafari();
-            } else {
-                restore = preventScrollStandard();
-            }
-        }
-        return ()=>{
-            preventScrollCount--;
-            if (preventScrollCount === 0) {
-                restore();
-            }
-        };
-    }, [
-        isDisabled
-    ]);
-}
-// For most browsers, all we need to do is set `overflow: hidden` on the root element, and
-// add some padding to prevent the page from shifting when the scrollbar is hidden.
-function preventScrollStandard() {
-    return chain(setStyle(document.documentElement, 'paddingRight', `${window.innerWidth - document.documentElement.clientWidth}px`));
-}
-// Mobile Safari is a whole different beast. Even with overflow: hidden,
-// it still scrolls the page in many situations:
-//
-// 1. When the bottom toolbar and address bar are collapsed, page scrolling is always allowed.
-// 2. When the keyboard is visible, the viewport does not resize. Instead, the keyboard covers part of
-//    it, so it becomes scrollable.
-// 3. When tapping on an input, the page always scrolls so that the input is centered in the visual viewport.
-//    This may cause even fixed position elements to scroll off the screen.
-// 4. When using the next/previous buttons in the keyboard to navigate between inputs, the whole page always
-//    scrolls, even if the input is inside a nested scrollable element that could be scrolled instead.
-//
-// In order to work around these cases, and prevent scrolling without jankiness, we do a few things:
-//
-// 1. Prevent default on `touchmove` events that are not in a scrollable element. This prevents touch scrolling
-//    on the window.
-// 2. Prevent default on `touchmove` events inside a scrollable element when the scroll position is at the
-//    top or bottom. This avoids the whole page scrolling instead, but does prevent overscrolling.
-// 3. Prevent default on `touchend` events on input elements and handle focusing the element ourselves.
-// 4. When focusing an input, apply a transform to trick Safari into thinking the input is at the top
-//    of the page, which prevents it from scrolling the page. After the input is focused, scroll the element
-//    into view ourselves, without scrolling the whole page.
-// 5. Offset the body by the scroll position using a negative margin and scroll to the top. This should appear the
-//    same visually, but makes the actual scroll position always zero. This is required to make all of the
-//    above work or Safari will still try to scroll the page when focusing an input.
-// 6. As a last resort, handle window scroll events, and scroll back to the top. This can happen when attempting
-//    to navigate to an input with the next/previous buttons that's outside a modal.
-function preventScrollMobileSafari() {
-    let scrollable;
-    let lastY = 0;
-    let onTouchStart = (e)=>{
-        // Store the nearest scrollable parent element from the element that the user touched.
-        scrollable = getScrollParent(e.target);
-        if (scrollable === document.documentElement && scrollable === document.body) {
-            return;
-        }
-        lastY = e.changedTouches[0].pageY;
-    };
-    let onTouchMove = (e)=>{
-        // Prevent scrolling the window.
-        if (!scrollable || scrollable === document.documentElement || scrollable === document.body) {
-            e.preventDefault();
-            return;
-        }
-        // Prevent scrolling up when at the top and scrolling down when at the bottom
-        // of a nested scrollable area, otherwise mobile Safari will start scrolling
-        // the window instead. Unfortunately, this disables bounce scrolling when at
-        // the top but it's the best we can do.
-        let y = e.changedTouches[0].pageY;
-        let scrollTop = scrollable.scrollTop;
-        let bottom = scrollable.scrollHeight - scrollable.clientHeight;
-        if (bottom === 0) {
-            return;
-        }
-        if (scrollTop <= 0 && y > lastY || scrollTop >= bottom && y < lastY) {
-            e.preventDefault();
-        }
-        lastY = y;
-    };
-    let onTouchEnd = (e)=>{
-        let target = e.target;
-        // Apply this change if we're not already focused on the target element
-        if (isInput(target) && target !== document.activeElement) {
-            e.preventDefault();
-            // Apply a transform to trick Safari into thinking the input is at the top of the page
-            // so it doesn't try to scroll it into view. When tapping on an input, this needs to
-            // be done before the "focus" event, so we have to focus the element ourselves.
-            target.style.transform = 'translateY(-2000px)';
-            target.focus();
-            requestAnimationFrame(()=>{
-                target.style.transform = '';
-            });
-        }
-    };
-    let onFocus = (e)=>{
-        let target = e.target;
-        if (isInput(target)) {
-            // Transform also needs to be applied in the focus event in cases where focus moves
-            // other than tapping on an input directly, e.g. the next/previous buttons in the
-            // software keyboard. In these cases, it seems applying the transform in the focus event
-            // is good enough, whereas when tapping an input, it must be done before the focus event. 🤷‍♂️
-            target.style.transform = 'translateY(-2000px)';
-            requestAnimationFrame(()=>{
-                target.style.transform = '';
-                // This will have prevented the browser from scrolling the focused element into view,
-                // so we need to do this ourselves in a way that doesn't cause the whole page to scroll.
-                if (visualViewport) {
-                    if (visualViewport.height < window.innerHeight) {
-                        // If the keyboard is already visible, do this after one additional frame
-                        // to wait for the transform to be removed.
-                        requestAnimationFrame(()=>{
-                            scrollIntoView(target);
-                        });
-                    } else {
-                        // Otherwise, wait for the visual viewport to resize before scrolling so we can
-                        // measure the correct position to scroll to.
-                        visualViewport.addEventListener('resize', ()=>scrollIntoView(target), {
-                            once: true
-                        });
-                    }
-                }
-            });
-        }
-    };
-    let onWindowScroll = ()=>{
-        // Last resort. If the window scrolled, scroll it back to the top.
-        // It should always be at the top because the body will have a negative margin (see below).
-        window.scrollTo(0, 0);
-    };
-    // Record the original scroll position so we can restore it.
-    // Then apply a negative margin to the body to offset it by the scroll position. This will
-    // enable us to scroll the window to the top, which is required for the rest of this to work.
-    let scrollX = window.pageXOffset;
-    let scrollY = window.pageYOffset;
-    let restoreStyles = chain(setStyle(document.documentElement, 'paddingRight', `${window.innerWidth - document.documentElement.clientWidth}px`));
-    // Scroll to the top. The negative margin on the body will make this appear the same.
-    window.scrollTo(0, 0);
-    let removeEvents = chain(addEvent(document, 'touchstart', onTouchStart, {
-        passive: false,
-        capture: true
-    }), addEvent(document, 'touchmove', onTouchMove, {
-        passive: false,
-        capture: true
-    }), addEvent(document, 'touchend', onTouchEnd, {
-        passive: false,
-        capture: true
-    }), addEvent(document, 'focus', onFocus, true), addEvent(window, 'scroll', onWindowScroll));
-    return ()=>{
-        // Restore styles and scroll the page back to where it was.
-        restoreStyles();
-        removeEvents();
-        window.scrollTo(scrollX, scrollY);
-    };
-}
-// Sets a CSS property on an element, and returns a function to revert it to the previous value.
-function setStyle(element, style, value) {
-    let cur = element.style[style];
-    element.style[style] = value;
-    return ()=>{
-        element.style[style] = cur;
-    };
-}
-// Adds an event listener to an element, and returns a function to remove it.
-function addEvent(target, event, handler, options) {
-    // @ts-ignore
-    target.addEventListener(event, handler, options);
-    return ()=>{
-        // @ts-ignore
-        target.removeEventListener(event, handler, options);
-    };
-}
-function scrollIntoView(target) {
-    let root = document.scrollingElement || document.documentElement;
-    while(target && target !== root){
-        // Find the parent scrollable element and adjust the scroll position if the target is not already in view.
-        let scrollable = getScrollParent(target);
-        if (scrollable !== document.documentElement && scrollable !== document.body && scrollable !== target) {
-            let scrollableTop = scrollable.getBoundingClientRect().top;
-            let targetTop = target.getBoundingClientRect().top;
-            let targetBottom = target.getBoundingClientRect().bottom;
-            const keyboardHeight = scrollable.getBoundingClientRect().bottom;
-            if (targetBottom > keyboardHeight) {
-                scrollable.scrollTop += targetTop - scrollableTop;
-            }
-        }
-        // @ts-ignore
-        target = scrollable.parentElement;
-    }
-}
-function isInput(target) {
-    return target instanceof HTMLInputElement && !nonTextInputTypes.has(target.type) || target instanceof HTMLTextAreaElement || target instanceof HTMLElement && target.isContentEditable;
 }
 
 // This code comes from https://github.com/radix-ui/primitives/tree/main/packages/react/compose-refs
@@ -764,10 +521,10 @@ function Root({ open: openProp, onOpenChange, children, shouldScaleBackground, o
     const nestedOpenChangeTimer = React__default.useRef(null);
     const pointerStart = React__default.useRef(0);
     const keyboardIsOpen = React__default.useRef(false);
-    const previousDiffFromInitial = React__default.useRef(0);
+    React__default.useRef(0);
     const drawerRef = React__default.useRef(null);
     const drawerHeightRef = React__default.useRef(((_drawerRef_current = drawerRef.current) == null ? void 0 : _drawerRef_current.getBoundingClientRect().height) || 0);
-    const initialDrawerHeight = React__default.useRef(0);
+    React__default.useRef(0);
     const onSnapPointChange = React__default.useCallback((activeSnapPointIndex)=>{
         // Change openTime ref when we reach the last snap point to prevent dragging for 500ms incase it's scrollable.
         if (snapPoints && activeSnapPointIndex === snapPointsOffset.length - 1) openTime.current = new Date();
@@ -783,7 +540,7 @@ function Root({ open: openProp, onOpenChange, children, shouldScaleBackground, o
         direction
     });
     // usePreventScroll({
-    //     isDisabled: !isOpen || isDragging || !modal || justReleased || !hasBeenOpened || disablePreventScroll
+    //   isDisabled: !isOpen || isDragging || !modal || justReleased || !hasBeenOpened || disablePreventScroll,
     // });
     const { restorePositionSetting } = usePositionFixed({
         isOpen,
@@ -950,64 +707,55 @@ function Root({ open: openProp, onOpenChange, children, shouldScaleBackground, o
             restorePositionSetting();
         };
     }, []);
-    React__default.useEffect(()=>{
-        var _window_visualViewport;
-        function onVisualViewportChange() {
-            if (!drawerRef.current) return;
-            const focusedElement = document.activeElement;
-            if (isInput(focusedElement) || keyboardIsOpen.current) {
-                var _window_visualViewport;
-                const visualViewportHeight = ((_window_visualViewport = window.visualViewport) == null ? void 0 : _window_visualViewport.height) || 0;
-                // This is the height of the keyboard
-                let diffFromInitial = window.innerHeight - visualViewportHeight;
-                const drawerHeight = drawerRef.current.getBoundingClientRect().height || 0;
-                if (!initialDrawerHeight.current) {
-                    initialDrawerHeight.current = drawerHeight;
-                }
-                const offsetFromTop = drawerRef.current.getBoundingClientRect().top;
-                // visualViewport height may change due to some subtle changes to the keyboard. Checking if the height changed by 60 or more will make sure that they keyboard really changed its open state.
-                if (Math.abs(previousDiffFromInitial.current - diffFromInitial) > 60) {
-                    keyboardIsOpen.current = !keyboardIsOpen.current;
-                }
-                if (snapPoints && snapPoints.length > 0 && snapPointsOffset && activeSnapPointIndex) {
-                    const activeSnapPointHeight = snapPointsOffset[activeSnapPointIndex] || 0;
-                    diffFromInitial += activeSnapPointHeight;
-                }
-                previousDiffFromInitial.current = diffFromInitial;
-                // We don't have to change the height if the input is in view, when we are here we are in the opened keyboard state so we can correctly check if the input is in view
-                if (drawerHeight > visualViewportHeight || keyboardIsOpen.current) {
-                    const height = drawerRef.current.getBoundingClientRect().height;
-                    let newDrawerHeight = height;
-                    if (height > visualViewportHeight) {
-                        newDrawerHeight = visualViewportHeight - WINDOW_TOP_OFFSET;
-                    }
-                    // When fixed, don't move the drawer upwards if there's space, but rather only change it's height so it's fully scrollable when the keyboard is open
-                    if (fixed) {
-                        drawerRef.current.style.height = `${height - Math.max(diffFromInitial, 0)}px`;
-                    } else {
-                        drawerRef.current.style.height = `${Math.max(newDrawerHeight, visualViewportHeight - offsetFromTop)}px`;
-                    }
-                } else {
-                    drawerRef.current.style.height = `${initialDrawerHeight.current}px`;
-                }
-                if (snapPoints && snapPoints.length > 0 && !keyboardIsOpen.current) {
-                    drawerRef.current.style.bottom = `0px`;
-                } else {
-                    // Negative bottom value would never make sense
-                    drawerRef.current.style.bottom = `${Math.max(diffFromInitial, 0)}px`;
-                }
-            }
-        }
-        (_window_visualViewport = window.visualViewport) == null ? void 0 : _window_visualViewport.addEventListener('resize', onVisualViewportChange);
-        return ()=>{
-            var _window_visualViewport;
-            return (_window_visualViewport = window.visualViewport) == null ? void 0 : _window_visualViewport.removeEventListener('resize', onVisualViewportChange);
-        };
-    }, [
-        activeSnapPointIndex,
-        snapPoints,
-        snapPointsOffset
-    ]);
+    // React.useEffect(() => {
+    //   function onVisualViewportChange() {
+    //     if (!drawerRef.current) return;
+    //     const focusedElement = document.activeElement as HTMLElement;
+    //     if (isInput(focusedElement) || keyboardIsOpen.current) {
+    //       const visualViewportHeight = window.visualViewport?.height || 0;
+    //       // This is the height of the keyboard
+    //       let diffFromInitial = window.innerHeight - visualViewportHeight;
+    //       const drawerHeight = drawerRef.current.getBoundingClientRect().height || 0;
+    //       if (!initialDrawerHeight.current) {
+    //         initialDrawerHeight.current = drawerHeight;
+    //       }
+    //       const offsetFromTop = drawerRef.current.getBoundingClientRect().top;
+    //       // visualViewport height may change due to some subtle changes to the keyboard. Checking if the height changed by 60 or more will make sure that they keyboard really changed its open state.
+    //       if (Math.abs(previousDiffFromInitial.current - diffFromInitial) > 60) {
+    //         keyboardIsOpen.current = !keyboardIsOpen.current;
+    //       }
+    //       if (snapPoints && snapPoints.length > 0 && snapPointsOffset && activeSnapPointIndex) {
+    //         const activeSnapPointHeight = snapPointsOffset[activeSnapPointIndex] || 0;
+    //         diffFromInitial += activeSnapPointHeight;
+    //       }
+    //       previousDiffFromInitial.current = diffFromInitial;
+    //       // We don't have to change the height if the input is in view, when we are here we are in the opened keyboard state so we can correctly check if the input is in view
+    //       if (drawerHeight > visualViewportHeight || keyboardIsOpen.current) {
+    //         const height = drawerRef.current.getBoundingClientRect().height;
+    //         let newDrawerHeight = height;
+    //         if (height > visualViewportHeight) {
+    //           newDrawerHeight = visualViewportHeight - WINDOW_TOP_OFFSET;
+    //         }
+    //         // When fixed, don't move the drawer upwards if there's space, but rather only change it's height so it's fully scrollable when the keyboard is open
+    //         if (fixed) {
+    //           drawerRef.current.style.height = `${height - Math.max(diffFromInitial, 0)}px`;
+    //         } else {
+    //           drawerRef.current.style.height = `${Math.max(newDrawerHeight, visualViewportHeight - offsetFromTop)}px`;
+    //         }
+    //       } else {
+    //         drawerRef.current.style.height = `${initialDrawerHeight.current}px`;
+    //       }
+    //       if (snapPoints && snapPoints.length > 0 && !keyboardIsOpen.current) {
+    //         drawerRef.current.style.bottom = `0px`;
+    //       } else {
+    //         // Negative bottom value would never make sense
+    //         drawerRef.current.style.bottom = `${Math.max(diffFromInitial, 0)}px`;
+    //       }
+    //     }
+    //   }
+    //   window.visualViewport?.addEventListener('resize', onVisualViewportChange);
+    //   return () => window.visualViewport?.removeEventListener('resize', onVisualViewportChange);
+    // }, [activeSnapPointIndex, snapPoints, snapPointsOffset]);
     function closeDrawer() {
         if (!drawerRef.current) return;
         cancelDrag();
